@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Mensagens, Calendário e Gráfico</title>
+    <!-- Link para Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Zoom plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.2.1"></script>
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: url(fundo.png);
+            background-position: center;
+            margin: 0;
+            color: white;
+            display: flex;
+            background-size: cover;
+            background-attachment: fixed;
+        }
+
+        .sidebar {
+            width: 250px;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            height: 100vh;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .sidebar a {
+            color: #fff;
+            padding: 15px;
+            text-decoration: none;
+            margin-bottom: 10px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            transition: background-color 0.3s;
+        }
+
+        .sidebar a:hover {
+            background-color: #f1c40f;
+            color: #000;
+        }
+
+        .sidebar a i {
+            margin-right: 10px;
+        }
+
+        .content {
+            flex-grow: 1;
+            padding: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            overflow-y: auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .search-box {
+            width: 300px;
+            padding: 10px;
+            border-radius: 20px;
+            border: 1px solid #ccc;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .search-box:focus {
+            border-color: #f1c40f;
+        }
+
+        .user-info {
+            font-size: 18px;
+        }
+
+        .tasks-container {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .task-list {
+            width: 48%;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .task-item {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .task-item:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .task-title {
+            color: #f1c40f;
+        }
+
+        .task-date {
+            font-size: 14px;
+            color: #bfbfbf;
+        }
+
+        .btn-action {
+            padding: 10px 20px;
+            background-color: #f1c40f;
+            color: #000;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        .btn-action:hover {
+            background-color: #d4ac0d;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Calendário */
+        .calendar {
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .calendar h2 {
+            margin-bottom: 20px;
+            color: #f1c40f;
+            text-align: center;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .navigation button {
+            background-color: rgba(255, 165, 0, 0.7);
+            border: none;
+            color: white;
+            padding: 10px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin: 0 10px;
+            transition: background-color 0.3s;
+        }
+
+        .navigation button:hover {
+            background-color: rgba(255, 165, 0, 0.9);
+        }
+
+        #monthName {
+            font-size: 20px;
+            color: #ffa500;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0 auto;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: center;
+        }
+
+        th {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        td {
+            background-color: rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+
+        td:hover {
+            background-color: #f1c40f;
+            color: #000;
+            transform: scale(1.1);
+            animation: bounceIn 0.6s;
+        }
+
+        .current-day {
+            background-color: rgba(255, 165, 0, 0.5);
+            animation: tada 1s;
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 400px;
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        @keyframes bounceIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.3);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.1);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes tada {
+            0% {
+                transform: scale(1);
+            }
+            10% {
+                transform: scale(0.9) rotate(-3deg);
+            }
+            20% {
+                transform: scale(1.1) rotate(3deg);
+            }
+            30% {
+                transform: scale(1.1) rotate(-3deg);
+            }
+            40% {
+                transform: scale(1.1) rotate(3deg);
+            }
+            50% {
+                transform: scale(1.1) rotate(-3deg);
+            }
+            60% {
+                transform: scale(1.1) rotate(3deg);
+            }
+            70% {
+                transform: scale(1.1) rotate(-3deg);
+            }
+            80% {
+                transform: scale(1.1) rotate(3deg);
+            }
+            90% {
+                transform: scale(1.1) rotate(-3deg);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <img src="logo.png" alt="" style="">
+        <a href="#" onclick="openTab('tasks')"><i class="fas fa-tasks"></i>Tarefas</a>
+        <a href="#" onclick="openTab('messages')"><i class="fas fa-envelope"></i>Mensagens</a>
+        <a href="#" onclick="openTab('calendar')"><i class="fas fa-calendar-alt"></i>Calendário</a>
+        <a href="#" onclick="openTab('chart')"><i class="fas fa-chart-line"></i>Gráfico</a>
+    </div>
+
+    <div class="content">
+        <!-- Seção de Tarefas -->
+        <div id="tasks" class="tab-content active">
+            <h2>Tarefas</h2>
+            <div class="tasks-container">
+                <div class="task-list">
+                    <h3>Tarefas por fazer</h3>
+                    <div class="task-item">
+                        <div>
+                            <div class="task-title">Passagem de terrenos</div>
+                            <div class="task-date">Data: 20.04.2023</div>
+                        </div>
+                        <button class="btn-action">Concluir</button>
+                    </div>
+                    <div class="task-item">
+                        <div>
+                            <div class="task-title">Passagem de terrenos</div>
+                            <div class="task-date">Data: 20.04.2023</div>
+                        </div>
+                        <button class="btn-action">Concluir</button>
+                    </div>
+                </div>
+                <div class="task-list">
+                    <h3>Tarefas Concluídas</h3>
+                    <div class="task-item">
+                        <div>
+                            <div class="task-title">Passagem de terrenos</div>
+                            <div class="task-date">Data: 20.04.2023</div>
+                        </div>
+                        <button class="btn-action">Ver</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Seção de Mensagens -->
+        <div id="messages" class="tab-content">
+            <h2>Mensagens</h2>
+            <div id="messageContainer"></div>
+            <button class="btn-action" onclick="addMessage()">Adicionar Mensagem</button>
+        </div>
+
+        <!-- Seção do Calendário -->
+        <div id="calendar" class="tab-content">
+            <h2>Calendário</h2>
+            <div class="calendar">
+                <div class="navigation">
+                    <button id="prevMonth">&lt;</button>
+                    <span id="monthName">August</span>
+                    <button id="nextMonth">&gt;</button>
+                </div>
+                <div id="calendarContainer"></div>
+            </div>
+        </div>
+
+        <!-- Seção do Gráfico -->
+        <div id="chart" class="tab-content">
+            <h2>Gráfico de Moeda</h2>
+            <div class="chart-container">
+                <canvas id="currencyChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Função para abrir uma aba
+        function openTab(tabName) {
+            var i, tabContent;
+            tabContent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabContent.length; i++) {
+                tabContent[i].classList.remove("active");
+            }
+            document.getElementById(tabName).classList.add("active");
+        }
+
+        // Mensagens
+        const messages = [
+            {
+                title: 'Solicitação de passagem de terreno',
+                time: '45min'
+            },
+            {
+                title: 'Solicitação de mudança de horário',
+                time: '1h'
+            }
+        ];
+
+        function loadMessages() {
+            const container = document.getElementById('messageContainer');
+            container.innerHTML = ''; // Limpar as mensagens anteriores
+            messages.forEach(message => {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'task-item';
+                messageDiv.innerHTML = `
+                    <div class="task-title">${message.title}</div>
+                    <div class="task-date">${message.time}</div>
+                `;
+                container.appendChild(messageDiv);
+            });
+        }
+
+        function addMessage() {
+            const container = document.getElementById('messageContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'task-item';
+            messageDiv.innerHTML = `
+                <div class="task-title">Nova Mensagem</div>
+                <div class="task-date">Agora</div>
+            `;
+            container.appendChild(messageDiv);
+        }
+
+        // Carrega as mensagens ao iniciar
+        window.onload = function() {
+            loadMessages();
+            openTab('tasks'); // Abre a aba de tarefas por padrão
+            initializeCalendar(); // Inicializa o calendário ao carregar
+        };
+
+        // Gráfico Chart.js
+        const ctx = document.getElementById('currencyChart').getContext('2d');
+        const currencyChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [{
+                    label: 'Moeda 1',
+                    data: [30, 50, 45, 60, 70, 90],
+                    borderColor: 'rgba(241, 196, 15, 1)',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    zoom: {
+                        zoom: {
+                            enabled: true,
+                            mode: 'x',
+                        }
+                    }
+                }
+            }
+        });
+
+        // Calendário
+        let currentMonth = new Date().getMonth();
+        let currentYear = new Date().getFullYear();
+
+        function renderCalendar(year, month) {
+            const calendarContainer = document.getElementById('calendarContainer');
+            calendarContainer.innerHTML = '';
+            const firstDay = new Date(year, month, 1).getDay();
+            const lastDate = new Date(year, month + 1, 0).getDate();
+            const monthName = document.getElementById('monthName');
+            monthName.textContent = new Date(year, month).toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+
+            let table = '<table class="animate__animated animate__fadeIn"><thead><tr>';
+            ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].forEach(day => {
+                table += `<th>${day}</th>`;
+            });
+            table += '</tr></thead><tbody><tr>';
+
+            // Preenche os dias em branco do início do mês
+            for (let i = 0; i < firstDay; i++) {
+                table += '<td></td>';
+            }
+
+            // Preenche os dias do mês
+            for (let day = 1; day <= lastDate; day++) {
+                const today = new Date();
+                const isToday = today.getDate() === day && today.getMonth() === month && today.getFullYear() === year;
+                table += `<td class="${isToday ? 'current-day animate__animated animate__pulse' : ''}">${day}</td>`;
+                if ((firstDay + day) % 7 === 0) {
+                    table += '</tr><tr>';
+                }
+            }
+
+            // Preenche os dias em branco do final do mês
+            if ((firstDay + lastDate) % 7 !== 0) {
+                for (let i = (firstDay + lastDate) % 7; i < 7; i++) {
+                    table += '<td></td>';
+                }
+            }
+
+            table += '</tr></tbody></table>';
+            calendarContainer.innerHTML = table;
+        }
+
+        function initializeCalendar() {
+            renderCalendar(currentYear, currentMonth);
+
+            document.getElementById('prevMonth').addEventListener('click', () => {
+                document.getElementById('calendarContainer').classList.add('animate__animated', 'animate__fadeOut');
+                setTimeout(() => {
+                    currentMonth--;
+                    if (currentMonth < 0) {
+                        currentMonth = 11;
+                        currentYear--;
+                    }
+                    renderCalendar(currentYear, currentMonth);
+                    document.getElementById('calendarContainer').classList.remove('animate__fadeOut');
+                    document.getElementById('calendarContainer').classList.add('animate__fadeIn');
+                }, 300);
+            });
+
+            document.getElementById('nextMonth').addEventListener('click', () => {
+                document.getElementById('calendarContainer').classList.add('animate__animated', 'animate__fadeOut');
+                setTimeout(() => {
+                    currentMonth++;
+                    if (currentMonth > 11) {
+                        currentMonth = 0;
+                        currentYear++;
+                    }
+                    renderCalendar(currentYear, currentMonth);
+                    document.getElementById('calendarContainer').classList.remove('animate__fadeOut');
+                    document.getElementById('calendarContainer').classList.add('animate__fadeIn');
+                }, 300);
+            });
+        }
+    </script>
+    
+</body>
+</html>
